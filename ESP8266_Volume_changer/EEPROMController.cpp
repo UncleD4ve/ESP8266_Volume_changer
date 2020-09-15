@@ -70,6 +70,7 @@ bool EEPROMController::setConfig(bool config)
 	EEPROM[0] = config;
 	EEPROM[1] = (char)90;
 	EEPROM[2] = (char)90;
+	EEPROM[205] = 0;
 	return EEPROM.commit();
 }
 
@@ -88,4 +89,55 @@ bool EEPROMController::getConfig()
 	return EEPROM[0];
 }
 
+bool EEPROMController::isStaticAddres()
+{
+	return EEPROM[205];
+}
 
+bool EEPROMController::setStaticAddres(bool status)
+{
+	EEPROM[205] = status;
+	return EEPROM.commit();
+}
+
+bool EEPROMController::setIpConfig()
+{
+	IPAddress ip = WiFi.localIP();
+	IPAddress gateway = WiFi.gatewayIP();
+	IPAddress subnet = WiFi.subnetMask();
+	Serial.println(ip);
+	Serial.println(gateway);
+	Serial.println(subnet);
+	for (uint8_t i = 0; i < 4; i++)
+		EEPROM[193 + i] = ip[i];
+	for (uint8_t i = 0; i < 4; i++)
+		EEPROM[197 + i] = gateway[i];
+	for (uint8_t i = 0; i < 4; i++)
+		EEPROM[201 + i] = subnet[i];
+	return EEPROM.commit();
+}
+
+IPAddress EEPROMController::getIp()
+{
+	IPAddress ip(EEPROM[193], EEPROM[194], EEPROM[195], EEPROM[196]);
+	return ip;
+}
+
+IPAddress EEPROMController::getGateway()
+{
+	IPAddress ip(EEPROM[197], EEPROM[198], EEPROM[199], EEPROM[200]);
+	return ip;
+}
+
+IPAddress EEPROMController::getSubnet()
+{
+	IPAddress ip(EEPROM[201], EEPROM[202], EEPROM[203], EEPROM[204]);
+	return ip;
+}
+
+bool EEPROMController::setIp( IPAddress & ip)
+{
+	for (uint8_t i = 0; i < 4; i++)
+		EEPROM[193 + i] = ip[i];
+	return EEPROM.commit();
+}

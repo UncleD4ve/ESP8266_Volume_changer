@@ -1,11 +1,4 @@
 const char indexEnd[] PROGMEM = R"=====(
-    <h4>SSID</h4>
-	<div class = "alpha"><input type = "text" id = "SSID" name = "SSID" placeholder = "SSID.."></div>
-	<h4>Password</h4>
-	<div class = "alpha"><input type = "Password" id = "Password" name = "Password" placeholder = "Pass.."></div>
-	</p>
-	<input type = "button" value = "Connect" onclick = "connect()">
-	<input type = "button" value = "Reload" onclick = "reload()">
     <h6>Made by David Friday</h6> 
 </form>
 <script>
@@ -76,7 +69,7 @@ function checkStatus(){
 			else if (this.responseText[0] === 'I') 
 			{
 				clearTimer();
-				loaderMessage("Connected successfully!");
+				loaderMessage("Connected successfully!<br><br>IP Address: "+this.responseText.substring(1));
 				var xhttp = new XMLHttpRequest();
 				xhttp.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) 

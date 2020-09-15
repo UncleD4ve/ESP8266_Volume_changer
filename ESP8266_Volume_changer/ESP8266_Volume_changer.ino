@@ -21,7 +21,7 @@ void setup()
 	yield();
 
 	Serial.println(ESP.getFreeHeap(), DEC);
-
+	Serial.println(WiFi.macAddress());
 	//WebServerContr.WiFiContr.forceWifiERegister();
 	if (WebServerContr.WiFiContr.begin(DNS_SSID)) {
 		WebServerContr.beginSPIFFS();
@@ -65,8 +65,8 @@ void loop()
 			digitalWrite(0, HIGH); servoIsOn = true;
 			if (destPosition > 180) destPosition = 180;
 			if (destPosition < 0)	destPosition = 0;
-			servo.write(destPosition);
-			position = servo.read();
+			servo.write(180 - destPosition);
+			position = 180 - servo.read();
 			WebServerContr.webSocketSend('A', position);
 			Serial.println(destPosition);
 			servoIsOnTimer = millis();

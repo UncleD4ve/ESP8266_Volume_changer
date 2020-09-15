@@ -12,6 +12,7 @@
 class WiFiRegister {
 public:
 	WiFiRegister(const char*);
+	WiFiRegister();
 	void begin();
 private:
 	ESP8266WebServer _server;
@@ -20,7 +21,7 @@ private:
 	String _ssid;
 	String _pass;
 	const char * _apName;
-	char _status[4];
+	char _status[13];
 
 	uint8_t encryptionTypeStr(uint8_t);
 	uint8_t encryptionPowerStr(int8_t);

@@ -1,6 +1,7 @@
 #include "WiFiRegister.h"
 
 WiFiRegister::WiFiRegister(const char * ssid) :_server(80), _apName(ssid) {}
+WiFiRegister::WiFiRegister() : _server(80) {}
 
 void WiFiRegister::begin()
 {
@@ -17,9 +18,9 @@ void WiFiRegister::begin()
 	dnsServer.setTTL(1);
 	dnsServer.start(53, "*", apIP);
 
-	if (WiFi.softAP(_apName)) {
+	if (WiFi.softAP(strlen(_apName) == 0 ? String(F("ESP WiFi Register")) : _apName)) {
 		Serial.print(F("\nWifi Register\nAccess Point name: "));
-		Serial.print(_apName);
+		Serial.print(WiFi.softAPSSID());
 		Serial.print(F("\nIP addres:"));
 		Serial.println(WiFi.softAPIP().toString().c_str());
 	}
@@ -77,7 +78,9 @@ String WiFiRegister::constructHTMLpage() {
 	}
 	else
 		HTMLpage.concat(F("<h4 id='avNetworks'>No networks available!</h4><br>"));
-
+	HTMLpage.concat(F("<h4>SSID</h4><div class=\"alpha\"><input type=\"text\" id=\"SSID\" name=\"SSID\" placeholder=\"SSID..\"></div><h4>Password</h4><div class=\"alpha\"><input type=\"Password\" id=\"Password\" name=\"Password\" placeholder=\"Pass..\"></div></p><input type=\"button\" value=\"Connect\" onclick=\"connect()\"><input type=\"button\" value=\"Reload\" onclick=\"reload()\"><h4>MAC Address:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"));
+	HTMLpage.concat(WiFi.macAddress());
+	HTMLpage.concat(F("</h4>"));
 	HTMLpage.concat(FPSTR(indexEnd));
 	return HTMLpage;
 }
@@ -100,10 +103,14 @@ void WiFiRegister::restart()
 		EEPROMController eeprom;
 		if (eeprom.saveWifi(_ssid, _pass))
 			if (eeprom.setConfig(true)) {
-				Serial.println(F("Device is restarting!"));
-				delay(3000);
-				WiFi.disconnect(true);
 				yield();
+				eeprom.setIpConfig();
+				yield();
+				Serial.println(F("Device is restarting!"));
+				WiFi.softAPdisconnect();
+				yield(); 
+				WiFi.disconnect(true);
+				delay(3000);
 				ESP.restart();
 			}
 			else
@@ -145,7 +152,10 @@ void WiFiRegister::ssidFromWeb() {
 		}
 		yield();
 		if (WiFi.status() == WL_CONNECTED)
+		{
 			strcpy_P(_status, PSTR("I"));
+			strcat(_status, WiFi.localIP().toString().c_str());
+		}
 		else
 		{
 			strcpy_P(_status, PSTR("N"));

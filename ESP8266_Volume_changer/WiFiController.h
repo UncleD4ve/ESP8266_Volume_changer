@@ -14,6 +14,7 @@ public:
 	bool checkInternet();
 	bool changeMode(int8_t mode = 4);
 	void dnsLoop();
+	void resetESP();
 
 private:
 	EEPROMController eeprom;

@@ -13,7 +13,13 @@ public:
 	bool setConfig(bool);
 	void resetConfig();
 	bool getConfig();
-
+	bool isStaticAddres();
+	bool setStaticAddres(bool);
+	bool setIpConfig();
+	IPAddress getIp();
+	IPAddress getGateway();
+	IPAddress getSubnet();
+	bool setIp(IPAddress&);
 
 	template<typename T>
 	bool setVar(int const address, const T &t) {

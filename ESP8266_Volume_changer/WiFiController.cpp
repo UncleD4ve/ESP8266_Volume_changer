@@ -31,7 +31,7 @@ bool WiFiController::begin(const char* SSID, int8_t mode, bool wake)
 
 void WiFiController::forceWifiERegister()
 {
-	WiFiRegister WiFiReg(PSTR("WiFi Register"));
+	WiFiRegister WiFiReg;
 	WiFiReg.begin();
 }
 
@@ -97,8 +97,18 @@ bool WiFiController::modeSTA()
 	yield();
 	WiFi.mode(WIFI_STA);
 	yield();
-	Serial.print(F("STA mode "));
 
+	if (eeprom.isStaticAddres())
+		if (WiFi.config(eeprom.getIp(), eeprom.getGateway(), eeprom.getSubnet()))
+		{
+			yield();
+			Serial.println(F("Static IP!"));
+			Serial.println(eeprom.getIp());
+			Serial.println(eeprom.getGateway());
+			Serial.println(eeprom.getSubnet());
+		}
+
+	Serial.print(F("STA mode "));
 	uint32_t time1 = system_get_time(), time2;
 	WiFi.begin((const char*)_ssid.c_str(), (const char*)_pass.c_str());
 	while (WiFi.status() != WL_CONNECTED) {
@@ -153,4 +163,15 @@ bool WiFiController::checkInternet()
 void WiFiController::dnsLoop()
 {
 	dnsServer.processNextRequest();
+}
+
+void WiFiController::resetESP()
+{
+	Serial.println(F("Device is restarting!"));
+	if (WiFi.getMode() == 2)
+		WiFi.softAPdisconnect();
+	yield();
+	WiFi.disconnect(true);
+	delay(100);
+	ESP.restart();
 }
