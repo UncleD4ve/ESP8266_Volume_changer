@@ -4,8 +4,8 @@
 
 #define DNS_SSID "VolUP_WiFi"
 
-uint32_t wiFiTimer(0), buttonsTimer(0), servoIsOnTimer(0), servoWebSocket(0);
-uint8_t position, destPosition;
+uint32_t wiFiTimer(0), buttonsTimer(0), servoIsOnTimer(0), servoWebSocket(0), dieTimer(0);
+uint8_t position, destPosition, dieCounter(0);
 bool servoIsOn(false);
 
 WebServerController WebServerContr(position,destPosition);
@@ -20,8 +20,8 @@ void setup()
 	Serial.begin(115200);
 	yield();
 
-	Serial.println(ESP.getFreeHeap(), DEC);
-	Serial.println(WiFi.macAddress());
+	Serial.printf_P(PSTR("MAC: %s Heap: %d\n"),WiFi.macAddress().c_str(), ESP.getFreeHeap());
+
 	//WebServerContr.WiFiContr.forceWifiERegister();
 	if (WebServerContr.WiFiContr.begin(DNS_SSID)) {
 		WebServerContr.beginSPIFFS();
@@ -41,13 +41,13 @@ void setup()
 void loop()
 {
 	yield();
-	if (digitalRead(13) == HIGH)
+	if (digitalRead(13) == LOW)
 		if (millis() - buttonsTimer >= 100) {
 			buttonsTimer = millis();
 			destPosition = position + 3 > 180 ? 180 : destPosition + 3;
 		}
 
-	if (digitalRead(12) == HIGH)
+	if (digitalRead(12) == LOW)
 		if (millis() - buttonsTimer >= 100) {
 			buttonsTimer = millis();
 			destPosition = position - 3 < 0 ? 0 : destPosition - 3;
@@ -59,7 +59,7 @@ void loop()
 
 	if (millis() - servoWebSocket >= 20)
 	{
-		servoWebSocket = millis();
+		servoWebSocket = millis(); yield();
 		if (position != destPosition)
 		{
 			digitalWrite(0, HIGH); servoIsOn = true;
@@ -70,7 +70,7 @@ void loop()
 			WebServerContr.webSocketSend('A', position);
 			Serial.println(destPosition);
 			servoIsOnTimer = millis();
-
+			yield();
 		}
 	}
 
@@ -83,4 +83,14 @@ void loop()
 		wiFiTimer = millis();
 		WebServerContr.WiFiContr.connect();
 	}
+
+
+	//Prevent esp stuck
+	if (millis() - dieTimer >= 3000) 
+		Serial.printf_P("Die counter: %d//3/n",++dieCounter);
+	if (!servoIsOn && dieCounter > 2)
+		WebServerContr.WiFiContr.resetESP();
+	else
+		dieCounter = 0;
+	dieTimer = millis();
 }

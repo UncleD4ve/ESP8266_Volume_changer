@@ -61,12 +61,15 @@ void WebServerController::beginServer() {
 
 void WebServerController::handleRoot()
 {
+	yield();
 	if (!handleFileRead(_server.uri()))
 		_server.send(404, F("text/plain"), F("404: File Not Found"));
+	yield();
 }
 
 bool WebServerController::handleFileRead(String path) {
 	//Serial.println("handleFileRead: " + path);
+	yield();
 	if (path.endsWith(F("/")))
 	{
 		Serial.print(F("New connection! heap: "));
@@ -80,10 +83,11 @@ bool WebServerController::handleFileRead(String path) {
 			path += F(".gz");
 		File file = SPIFFS.open(path, "r");
 		size_t sent = _server.streamFile(file, contentType);
-		file.close();
+		file.close(); yield();
 		Serial.println(PSTR("\tSent file: ") + path);
 		return true;
 	}
+	yield();
 	Serial.println(PSTR("File Not Found: ") + path);
 	return false;
 }
@@ -125,91 +129,110 @@ void WebServerController::webSocketEvent(uint8_t num, WStype_t type, uint8_t * p
 	Serial.println(F("webSocketEvent"));
 	switch (type) {
 	case WStype_DISCONNECTED:
-		Serial.print(num);
-		Serial.println(F("Disconnected!"));
+		yield();
+		Serial.printf_P(PSTR("[%u] Disconnected!\n"), num);
 		break;
 	case WStype_CONNECTED:
 	{
+		yield();
 		IPAddress ip = _webSocket.remoteIP(num), staticIP;
-		Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\r\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-		uint8_t saveB, saveC;
-		eeprom.getVar(1,saveB);
+		Serial.printf_P(PSTR("[%u] Connected from %d.%d.%d.%d url: %s\r\n"), num, ip[0], ip[1], ip[2], ip[3], payload);
+		uint8_t saveB, saveC, saveD;
+		char buff[40];
+		eeprom.getVar(1, saveB);
 		eeprom.getVar(2, saveC);
-		if (WiFi.getMode() == 2)
-			staticIP = eeprom.getIp();
-		else
-			staticIP = WiFi.localIP();
-		_webSocket.sendTXT(num, "I" + String(_position) + ',' + String(saveB) + ',' + String(saveC) + ',' + (eeprom.isStaticAddres() ? 'S' : 'D') + ',' + staticIP.toString());
+		eeprom.getVar(3, saveD);
+		staticIP = (WiFi.getMode() == 2 ? eeprom.getIp() : WiFi.localIP());
+
+		sprintf_P(buff,PSTR("I%d,%d,%d,%d,%c,%s"), _position, saveB, saveC, saveD, (eeprom.isStaticAddres() ? 'S' : 'D'), staticIP.toString().c_str());
+		_webSocket.sendTXT(num, buff);
+		//_webSocket.sendTXT(num, "I" + String(_position) + ',' + String(saveB) + ',' + String(saveC) + ',' + String(saveD) + ',' + (eeprom.isStaticAddres() ? 'S' : 'D') + ',' + staticIP.toString());
 		break;
 	}
 	case WStype_TEXT:
-		Serial.printf("[%u] get Text: %s\r\n", num, payload);
+		yield();
+		Serial.printf_P(PSTR("[%u] get Text: %s\r\n"), num, payload);
+
 		if (payload[0] == 'a') {
-			_destPosition = String((char*)&payload[1]).toInt();
+			_destPosition = atoi((char*)&payload[1]);
 		}
 		else if (payload[0] == 'b') {
-			switch (payload[1])
+			uint8_t button(atoi((char*)&payload[1]));
+			switch (button)
 			{
-			case '1':
+			case 0:
+			{
+				if (eeprom.setStaticAddres(false))
+					WiFiContr.resetESP();
+				break;
+			}
+			case 1:
 			{
 				eeprom.setVar(1,_position);
-				yield();
-				_webSocket.broadcastTXT("B"+String(_position));
+				webSocketSend('B', _position);
 				break;
 			}
-			case '2':
+			case 2:
 			{
 				eeprom.getVar(1, _destPosition);
+				yield();
 				break;
 			}
-			case '3':
+			case 3:
 			{
 				eeprom.setVar(2, _position);
-				yield();
-				_webSocket.broadcastTXT("C" + String(_position));
+				webSocketSend('C',_position);
 				break;
 			}
-			case '4':
+			case 4:
 			{
 				eeprom.getVar(2, _destPosition);
+				yield();
 				break;
 			}
-			case '5':
+			case 5:
 			{
 				digitalWrite(4, HIGH);
 				delay(300);
 				digitalWrite(4, LOW);
 				break;
 			}
-			case '6':
+			case 6:
 			{
 				digitalWrite(5, HIGH);
 				delay(300);
 				digitalWrite(5, LOW);
 				break;
 			}
-			case '7':
+			case 7:
 			{
-
+				//simplify
 				WiFiContr.changeMode();
 				beginServer();
 				beginWebSocket();
+				yield();
 				break;
 			}
-			case '8':
+			case 8:
 			{
 				WiFiContr.resetESP();
 				break;
 			}
-			case '9':
+			case 9:
 			{
 				ESP.deepSleep(0);
 				break;
 			}
-			case '0':
+			case 10:
 			{
-				if (eeprom.setStaticAddres(false))
-					WiFiContr.resetESP();
+				eeprom.setVar(3, _position);
+				webSocketSend('D', _position);
+				break;
+			}
+			case 11:
+			{
+				eeprom.getVar(3, _destPosition);
+				yield();
 				break;
 			}
 			default:
@@ -221,20 +244,22 @@ void WebServerController::webSocketEvent(uint8_t num, WStype_t type, uint8_t * p
 		else if(payload[0] == 'i')
 		{
 			IPAddress ip;
-			ip.fromString(String((char*)&payload[1]));
+			ip.fromString((char*)&payload[1]);
+			Serial.println(ip);
 			if (eeprom.setStaticAddres(true))
 				if (eeprom.setIp(ip))
 					WiFiContr.resetESP();
 		}
-		//_webSocket.broadcastTXT(payload, length);
 		break;
 	case WStype_BIN:
+		yield();
 		Serial.println(F("Get binary"));
 		hexdump(payload, length);
 		_webSocket.sendBIN(num, payload, length);
 		break;
 	default:
-		Serial.println(F("Invalid WStype "));
+		yield();
+		Serial.println(F("Invalid WStype"));
 		break;
 	}
 }
@@ -258,23 +283,32 @@ String WebServerController::getContentType(String filename) {
 }
 
 void WebServerController::webSocketLoop() {
+	yield();
 	_webSocket.loop();
 	yield();
 }
 
 void WebServerController::handleClientLoop() {
+	yield();
 	_server.handleClient();
 	if (WiFi.getMode() == 2)WiFiContr.dnsLoop();
 	yield();
 }
 
 void WebServerController::otaLoop() {
+	yield();
 	ArduinoOTA.handle();
 	yield();
 }
 
 void WebServerController::webSocketSend(char sign, uint8_t num) {
-	_webSocket.broadcastTXT(sign + String(num));
+	yield();
+	itoa(num, buffer, 10);
+	uint8_t len(strlen(buffer));
+	memmove(buffer + 1, buffer, ++len);
+	*buffer = sign;
+	_webSocket.broadcastTXT(buffer);
+	yield();
 }
 
 

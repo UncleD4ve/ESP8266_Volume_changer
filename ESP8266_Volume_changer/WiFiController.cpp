@@ -37,6 +37,7 @@ void WiFiController::forceWifiERegister()
 
 bool WiFiController::connect()
 {
+	yield();
 	switch (_mode)
 	{
 		case 0:
@@ -48,9 +49,11 @@ bool WiFiController::connect()
 				WiFi.softAPdisconnect();
 			yield();
 
+			bool status(true);
 			if (!modeSTA())
-				modeAP();
-			return true;
+				status = modeAP();
+
+			return status;
 		}
 		case 1:
 		{
@@ -67,8 +70,7 @@ bool WiFiController::connect()
 		}
 		default:
 		{
-			yield();
-			ESP.restart();
+			resetESP();
 		}
 	}
 	return false;
@@ -154,6 +156,7 @@ bool WiFiController::modeAP()
 
 bool WiFiController::checkInternet()
 {
+	yield();
 	if (_client.connect(F("httpbin.org"), 80))
 		return true;
 	else
@@ -162,6 +165,7 @@ bool WiFiController::checkInternet()
 
 void WiFiController::dnsLoop()
 {
+	yield();
 	dnsServer.processNextRequest();
 }
 

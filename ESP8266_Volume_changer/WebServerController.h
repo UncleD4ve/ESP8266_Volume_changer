@@ -34,10 +34,11 @@ private:
 	bool handleFileRead(String);
 
 	void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
-	String formatBytes(size_t);
-	String getContentType(String);
+	String formatBytes(size_t);		//simplify
+	String getContentType(String);	//simplify
 
 	uint8_t & _position;
 	uint8_t & _destPosition;
+	char buffer[5];
 };
 #endif

@@ -141,8 +141,9 @@ void WiFiRegister::ssidFromWeb() {
 				previousMillis = currentMillis;
 				if (++i % multi == 0)
 				{
-					strcpy_P(_status, PSTR("W"));
-					strcat(_status, String(i / multi).c_str());
+					sprintf_P(_status,PSTR("W%d"), i / multi);
+					//strcpy_P(_status, PSTR("W"));
+					//strcat(_status, String().c_str());
 					Serial.println(i / multi);
 				}
 			}
@@ -153,8 +154,9 @@ void WiFiRegister::ssidFromWeb() {
 		yield();
 		if (WiFi.status() == WL_CONNECTED)
 		{
-			strcpy_P(_status, PSTR("I"));
-			strcat(_status, WiFi.localIP().toString().c_str());
+			sprintf_P(_status, PSTR("I%s"), WiFi.localIP().toString().c_str());
+			//strcpy_P(_status, PSTR("I"));
+			//strcat(_status, WiFi.localIP().toString().c_str());
 		}
 		else
 		{

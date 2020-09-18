@@ -70,6 +70,7 @@ bool EEPROMController::setConfig(bool config)
 	EEPROM[0] = config;
 	EEPROM[1] = (char)90;
 	EEPROM[2] = (char)90;
+	EEPROM[3] = (char)90;
 	EEPROM[205] = 0;
 	return EEPROM.commit();
 }
