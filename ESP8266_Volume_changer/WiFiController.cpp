@@ -95,6 +95,8 @@ bool WiFiController::changeMode(int8_t mode)
 
 bool WiFiController::modeSTA()
 {
+	uint32_t time1 = system_get_time(), time2;
+	WiFi.persistent(false);
 	WiFi.disconnect();
 	yield();
 	WiFi.mode(WIFI_STA);
@@ -111,10 +113,9 @@ bool WiFiController::modeSTA()
 		}
 
 	Serial.print(F("STA mode "));
-	uint32_t time1 = system_get_time(), time2;
 	WiFi.begin((const char*)_ssid.c_str(), (const char*)_pass.c_str());
 	while (WiFi.status() != WL_CONNECTED) {
-		delay(100);
+		yield();
 		time2 = system_get_time();
 		if (((time2 - time1) / 1e6) > 60)
 		{
@@ -124,7 +125,7 @@ bool WiFiController::modeSTA()
 	}
 
 	Serial.print(F("true, Connected in: "));
-	Serial.println((time2 - time1) / 1e6);
+	Serial.println((system_get_time() - time1) / 1e6);
 	Serial.print(PSTR("IP address: "));
 	Serial.println(WiFi.localIP());
 	return true;

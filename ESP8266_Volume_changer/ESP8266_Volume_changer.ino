@@ -87,7 +87,7 @@ void loop()
 
 	//Prevent esp stuck
 	if (millis() - dieTimer >= 3000) 
-		Serial.printf_P("Die counter: %d//3/n",++dieCounter);
+		Serial.printf_P(PSTR("Die counter: %d/3\n"),++dieCounter);
 	if (!servoIsOn && dieCounter > 2)
 		WebServerContr.WiFiContr.resetESP();
 	else
